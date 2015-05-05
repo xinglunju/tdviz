@@ -19,6 +19,7 @@ class TDViz(HasTraits):
 	rendering = Enum("Surface", "Volume")
 	save_the_scene = Button(u"Save")
 	add_cut = Button(u"Cutthrough")
+	rotate = Button(u"Rotate")
 	zscale = Float(1.0)
 	xstart = Float(0.0)
 	xend   = Float(1.0)
@@ -49,6 +50,7 @@ class TDViz(HasTraits):
 			Item('opacity', tooltip=u"Opacity of the scene", show_label=True),
 			Item("save_the_scene", tooltip=u"Save current scene in a .obj file. There is no guarantee that everything you see are saved as what they are!", visible_when="rendering=='Surface'"),
 			Item("add_cut", tooltip="Add a cutthrough view"),
+			Item("rotate", tooltip="Rotate current view"),
 			'clearbutton',
 			show_labels=False
 		),
@@ -111,17 +113,46 @@ class TDViz(HasTraits):
 		        sregion[j,k,:]=splev(chanindex2,tck)
 		self.sregion = sregion
 
+		## Keep a record of the coordinates:
+		crval1 = self.hdr['crval1']
+		cdelt1 = self.hdr['cdelt1']
+		crpix1 = self.hdr['crpix1']
+		crval2 = self.hdr['crval2']
+		cdelt2 = self.hdr['cdelt2']
+		crpix2 = self.hdr['crpix2']
+		crval3 = self.hdr['crval3']
+		cdelt3 = self.hdr['cdelt3']
+		crpix3 = self.hdr['crpix3']
+
+		ra_start = (self.xstart - crpix1) * cdelt1 + crval1
+		ra_end = (self.xend - crpix1) * cdelt1 + crval1
+		#if ra_start > ra_end:
+		#	ra_start, ra_end = ra_end, ra_start
+		dec_start = (self.ystart - crpix2) * cdelt2 + crval2
+		dec_end = (self.yend - crpix2) * cdelt2 + crval2
+		#if dec_start > dec_end:
+		#	dec_start, dec_end = dec_end, dec_start
+		vel_start = (self.zstart - crpix3) * cdelt3 + crval3
+		vel_end = (self.zend - crpix3) * cdelt3 + crval3
+		#if vel_start > vel_end:
+		#	vel_start, vel_end = vel_end, vel_start
+		vel_start /= 1e3
+		vel_end /= 1e3
+
+		self.extent =[ra_start, ra_end, dec_start, dec_end, vel_start, vel_end]
+
 	def _plotbutton1_fired(self):
 		mlab.clf()
 		self.loaddata()
 		field=mlab.pipeline.scalar_field(self.sregion)     # Generate a scalar field
 		mlab.pipeline.volume(field,vmax=self.datamax,vmin=self.datamin) # Render the field with dots
-
+		
 		mlab.outline()
 		mlab.xlabel('RA(J2000)')
 		mlab.ylabel('DEC(J2000)')
 		mlab.zlabel('Velocity')
-		mlab.view(azimuth=0, elevation=0)
+		mlab.axes(field, ranges=self.extent, nb_labels=5)
+		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
 		
 		self.field   = field
@@ -135,10 +166,11 @@ class TDViz(HasTraits):
 		field.actor.property.opacity = self.opacity
 
 		mlab.outline()
-		mlab.xlabel('RA(J2000)')
-		mlab.ylabel('DEC(J2000)')
-		mlab.zlabel('Velocity')
-		mlab.view(azimuth=0, elevation=0)
+		mlab.xlabel('RA (J2000)')
+		mlab.ylabel('DEC (J2000)')
+		mlab.zlabel('Velocity (km/s)')
+		mlab.axes(field, ranges=self.extent, nb_labels=5)
+		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
 
 		self.field   = field
@@ -154,6 +186,14 @@ class TDViz(HasTraits):
 
 	def _save_the_scene_fired(self):
 		mlab.savefig('3dscene.obj')
+
+	def _rotate_fired(self):
+		i = 0
+		while i<18:
+			self.field.scene.camera.azimuth(5)
+			self.field.scene.render()
+			#mlab.screenshot(figure='shots', antialiased=True)
+			i +=1
 
 	def _clearbutton_fired(self):
 		mlab.clf()
