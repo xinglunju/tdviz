@@ -22,6 +22,7 @@ class TDViz(HasTraits):
 	save_the_scene = Button(u"Save")
 	add_cut = Button(u"Cutthrough")
 	rotate = Button(u"Rotate")
+	rotatecrazy = Button(u"Rotate like crazy")
 	zscale = Float(1.0)
 	xstart = Float(0.0)
 	xend   = Float(1.0)
@@ -53,6 +54,7 @@ class TDViz(HasTraits):
 			Item("save_the_scene", tooltip=u"Save current scene in a .obj file. There is no guarantee that everything you see are saved as what they are!", visible_when="rendering=='Surface'"),
 			Item("add_cut", tooltip="Add a cutthrough view"),
 			Item("rotate", tooltip="Rotate current view"),
+			Item("rotatecrazy", tooltip="Don't!"),
 			'clearbutton',
 			show_labels=False
 		),
@@ -212,6 +214,12 @@ class TDViz(HasTraits):
 				mlab.savefig('./tenpfigz/screenshot'+str(i)+'.png')
 
 		os.system("convert -delay 50 -loop 1 ./tenpfigz/*.png ./tenpfigz/animation.gif")
+	
+	def _rotatecrazy_fired(self):
+		while 1:
+			self.field.scene.camera.azimuth(5)
+			self.field.scene.render()
+
 
 	def _clearbutton_fired(self):
 		mlab.clf()
