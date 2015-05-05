@@ -5,6 +5,8 @@ from enthought.mayavi.tools.mlab_scene_model import MlabSceneModel
 from enthought.mayavi.core.ui.mayavi_scene import MayaviScene
 from enthought.mayavi import mlab
 import numpy as np
+import os
+import glob
 try:
 	import astropy.io.fits as pyfits
 except ImportError:
@@ -92,6 +94,8 @@ class TDViz(HasTraits):
 		self.yend    = self.data.shape[1]
 		self.zend    = self.data.shape[2]
 
+		self.data[self.data<self.datamin] = self.datamin
+
 	def loaddata(self):
 		channel = self.data
 		## Select a region, use mJy unit
@@ -148,10 +152,10 @@ class TDViz(HasTraits):
 		mlab.pipeline.volume(field,vmax=self.datamax,vmin=self.datamin) # Render the field with dots
 		
 		mlab.outline()
-		mlab.xlabel('RA(J2000)')
-		mlab.ylabel('DEC(J2000)')
-		mlab.zlabel('Velocity')
-		mlab.axes(field, ranges=self.extent, nb_labels=5)
+		xlab = 'RA (J2000)'
+		ylab = 'DEC (J2000)'
+		zlab = 'Velocity (km/s)'
+		mlab.axes(field, ranges=self.extent, nb_labels=5, xlabel=xlab, ylabel=ylab, zlabel=zlab)
 		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
 		
@@ -166,10 +170,10 @@ class TDViz(HasTraits):
 		field.actor.property.opacity = self.opacity
 
 		mlab.outline()
-		mlab.xlabel('RA (J2000)')
-		mlab.ylabel('DEC (J2000)')
-		mlab.zlabel('Velocity (km/s)')
-		mlab.axes(field, ranges=self.extent, nb_labels=5)
+		xlab = 'RA (J2000)'
+		ylab = 'DEC (J2000)'
+		zlab = 'Velocity (km/s)'
+		mlab.axes(field, ranges=self.extent, nb_labels=5, xlabel=xlab, ylabel=ylab, zlabel=zlab)
 		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
 
@@ -188,12 +192,26 @@ class TDViz(HasTraits):
 		mlab.savefig('3dscene.obj')
 
 	def _rotate_fired(self):
+		if os.path.exists("./tenpfigz"):
+			print "The chance of you using this name is really small..."
+		else:
+			os.system("mkdir tenpfigz")
+
+		if filter(os.path.isfile, glob.glob("./tenpfigz/*.png")) != []:
+			os.system("rm -rf ./tenpfigz/*.png")
+
 		i = 0
+		mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.png')
 		while i<18:
 			self.field.scene.camera.azimuth(5)
 			self.field.scene.render()
-			#mlab.screenshot(figure='shots', antialiased=True)
 			i +=1
+			if i<10:
+				mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.png')
+			elif 9<i<100:
+				mlab.savefig('./tenpfigz/screenshot'+str(i)+'.png')
+
+		os.system("convert -delay 50 -loop 1 ./tenpfigz/*.png ./tenpfigz/animation.gif")
 
 	def _clearbutton_fired(self):
 		mlab.clf()
