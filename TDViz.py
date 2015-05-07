@@ -21,8 +21,8 @@ class TDViz(HasTraits):
 	rendering = Enum("Surface", "Volume")
 	save_the_scene = Button(u"Save")
 	add_cut = Button(u"Cutthrough")
-	rotate = Button(u"Rotate")
-	rotatecrazy = Button(u"Rotate like crazy")
+	movie = Button(u"Movie")
+	spin = Button(u"Spin")
 	zscale = Float(1.0)
 	xstart = Float(0.0)
 	xend   = Float(1.0)
@@ -53,8 +53,8 @@ class TDViz(HasTraits):
 			Item('opacity', tooltip=u"Opacity of the scene", show_label=True),
 			Item("save_the_scene", tooltip=u"Save current scene in a .obj file. There is no guarantee that everything you see are saved as what they are!", visible_when="rendering=='Surface'"),
 			Item("add_cut", tooltip="Add a cutthrough view"),
-			Item("rotate", tooltip="Rotate current view"),
-			Item("rotatecrazy", tooltip="Don't!"),
+			Item("movie", tooltip="Move a GIF movie"),
+			Item("spin", tooltip="Spin 360 degrees"),
 			'clearbutton',
 			show_labels=False
 		),
@@ -193,7 +193,7 @@ class TDViz(HasTraits):
 	def _save_the_scene_fired(self):
 		mlab.savefig('3dscene.obj')
 
-	def _rotate_fired(self):
+	def _movie_fired(self):
 		if os.path.exists("./tenpfigz"):
 			print "The chance of you using this name is really small..."
 		else:
@@ -215,10 +215,12 @@ class TDViz(HasTraits):
 
 		os.system("convert -delay 50 -loop 1 ./tenpfigz/*.png ./tenpfigz/animation.gif")
 	
-	def _rotatecrazy_fired(self):
-		while 1:
+	def _spin_fired(self):
+		i = 0
+		while i<72:
 			self.field.scene.camera.azimuth(5)
 			self.field.scene.render()
+			i += 1
 
 
 	def _clearbutton_fired(self):
