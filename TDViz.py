@@ -1,9 +1,9 @@
-from enthought.traits.api import HasTraits, Button, Instance, List, Str, Enum, Float, File
-from enthought.traits.ui.api import View, Item, VGroup, HSplit, CheckListEditor, HGroup
-from enthought.tvtk.pyface.scene_editor import SceneEditor
-from enthought.mayavi.tools.mlab_scene_model import MlabSceneModel
-from enthought.mayavi.core.ui.mayavi_scene import MayaviScene
-from enthought.mayavi import mlab
+from traits.api import HasTraits, Button, Instance, List, Str, Enum, Float, File
+from traitsui.api import View, Item, VGroup, HSplit, CheckListEditor, HGroup
+from tvtk.pyface.scene_editor import SceneEditor
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi import mlab
 import numpy as np
 import os
 import glob
@@ -53,7 +53,7 @@ class TDViz(HasTraits):
 			Item('opacity', tooltip=u"Opacity of the scene", show_label=True),
 			Item("save_the_scene", tooltip=u"Save current scene in a .obj file. There is no guarantee that everything you see are saved as what they are!", visible_when="rendering=='Surface'"),
 			Item("add_cut", tooltip="Add a cutthrough view"),
-			Item("movie", tooltip="Move a GIF movie"),
+			Item("movie", tooltip="Make a GIF movie"),
 			Item("spin", tooltip="Spin 360 degrees"),
 			'clearbutton',
 			show_labels=False
