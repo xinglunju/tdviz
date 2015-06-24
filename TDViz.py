@@ -150,8 +150,23 @@ class TDViz(HasTraits):
 	def _plotbutton1_fired(self):
 		mlab.clf()
 		self.loaddata()
-		field=mlab.pipeline.scalar_field(self.sregion)     # Generate a scalar field
-		mlab.pipeline.volume(field,vmax=self.datamax,vmin=self.datamin) # Render the field with dots
+		# The following code is from: http://docs.enthought.com/mayavi/mayavi/auto/example_atomic_orbital.html#example-atomic-orbital
+		field = mlab.pipeline.scalar_field(self.sregion)     # Generate a scalar field
+		colored = self.sregion
+		vol=self.sregion.shape
+		for v in range(0,vol[2]-1):
+			colored[:,:,v] = self.extent[4] + v*self.hdr['cdelt3']
+		field.image_data.point_data.add_array(colored.T.ravel())
+		field.image_data.point_data.get_array(1).name = 'color'
+		field.image_data.point_data.update()
+
+		field2 = mlab.pipeline.set_active_attribute(field, point_scalars='scalar')
+		contour = mlab.pipeline.contour(field2)
+		contour2 = mlab.pipeline.set_active_attribute(contour, point_scalars='color')
+
+		mlab.pipeline.surface(contour2, colormap='gist_rainbow')
+		
+		#mlab.pipeline.volume(field,vmax=self.datamax,vmin=self.datamin) # Render the field with dots
 		
 		mlab.outline()
 		xlab = 'RA (J2000)'
@@ -166,7 +181,8 @@ class TDViz(HasTraits):
 	def _plotbutton2_fired(self):
 		mlab.clf()
 		self.loaddata()
-		field=mlab.contour3d(self.sregion,colormap='gist_ncar')     # Generate a scalar field
+		#field=mlab.contour3d(self.sregion,colormap='gist_ncar')     # Generate a scalar field
+		field=mlab.contour3d(self.sregion)     # Generate a scalar field
 		field.contour.maximum_contour = self.datamax
 		field.contour.minimum_contour = self.datamin
 		field.actor.property.opacity = self.opacity
@@ -191,7 +207,8 @@ class TDViz(HasTraits):
 		cut.contour.number_of_contours=5
 
 	def _save_the_scene_fired(self):
-		mlab.savefig('3dscene.obj')
+		mlab.savefig('jun23.obj')
+		mlab.savefig('jun23.iv')
 
 	def _movie_fired(self):
 		if os.path.exists("./tenpfigz"):
@@ -221,7 +238,6 @@ class TDViz(HasTraits):
 			self.field.scene.camera.azimuth(5)
 			self.field.scene.render()
 			i += 1
-
 
 	def _clearbutton_fired(self):
 		mlab.clf()
