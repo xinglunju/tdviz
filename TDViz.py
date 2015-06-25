@@ -4,6 +4,8 @@ from tvtk.pyface.scene_editor import SceneEditor
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi import mlab
+from astropy import coordinates as coord
+from astropy import units as u
 import numpy as np
 import os
 import glob
@@ -18,7 +20,7 @@ class TDViz(HasTraits):
 	plotbutton2 = Button(u"Plot")
 	clearbutton = Button(u"Clear")
 	scene = Instance(MlabSceneModel, ())
-	rendering = Enum("Surface", "Volume")
+	rendering = Enum("Surface-Spectrum", "Surface-Intensity")
 	save_the_scene = Button(u"Save")
 	add_cut = Button(u"Cutthrough")
 	movie = Button(u"Movie")
@@ -30,7 +32,7 @@ class TDViz(HasTraits):
 	yend   = Float(1.0)
 	zstart = Float(0.0)
 	zend   = Float(1.0)
-	datamin= Float(0.0) # rms = 600 mJy
+	datamin= Float(0.0)
 	datamax= Float(1.0)
 	opacity= Float(0.3)
 
@@ -39,8 +41,8 @@ class TDViz(HasTraits):
 		VGroup(
 			Item("fitsfile", label=u"Select a FITS datacube", show_label=True),
 			Item("rendering", tooltip=u"Choose the rendering type you like", show_label=True),
-			Item('plotbutton1', tooltip=u"Plot the 3D scene with volume rendering", visible_when="rendering=='Volume'"),
-			Item('plotbutton2', tooltip=u"Plot the 3D scene with surface rendering", visible_when="rendering=='Surface'"),
+			Item('plotbutton1', tooltip=u"Plot the 3D scene with surface rendering, colored by spectrum", visible_when="rendering=='Surface-Spectrum'"),
+			Item('plotbutton2', tooltip=u"Plot the 3D scene with surface rendering, colored by intensity", visible_when="rendering=='Surface-Intensity'"),
 			HGroup(Item('xstart', tooltip=u"starting pixel in X axis", show_label=True),
 				   Item('xend', tooltip=u"ending pixel in X axis", show_label=True)),
 			HGroup(Item('ystart', tooltip=u"starting pixel in Y axis", show_label=True),
@@ -51,7 +53,7 @@ class TDViz(HasTraits):
 				   Item('datamin', tooltip=u"Minimum datapoint shown", show_label=True)),
 			Item('zscale', tooltip=u"Stretch the datacube in Z axis", show_label=True),
 			Item('opacity', tooltip=u"Opacity of the scene", show_label=True),
-			Item("save_the_scene", tooltip=u"Save current scene in a .obj file. There is no guarantee that everything you see are saved as what they are!", visible_when="rendering=='Surface'"),
+			Item("save_the_scene", tooltip=u"Save current scene in a .wrl file"),
 			Item("add_cut", tooltip="Add a cutthrough view"),
 			Item("movie", tooltip="Make a GIF movie"),
 			Item("spin", tooltip="Spin 360 degrees"),
@@ -84,7 +86,7 @@ class TDViz(HasTraits):
 		elif naxis == 3:
 			self.data = np.swapaxes(dat,0,2)*1000.0
 		onevpix = self.hdr['CDELT3']
-		## Flip the axis
+		## Flip the V axis
 		if onevpix > 0:
 			self.data = self.data[:,:,::-1]
 		self.data[np.isnan(self.data)] = 0.0
@@ -118,6 +120,9 @@ class TDViz(HasTraits):
 		        chanindex2=np.linspace(0,vol[2]-1,vol[2]*stretch)
 		        sregion[j,k,:]=splev(chanindex2,tck)
 		self.sregion = sregion
+		self.xrang = abs(self.xstart - self.xend)
+		self.yrang = abs(self.ystart - self.yend)
+		self.zrang = abs(self.zstart - self.zend)*stretch
 
 		## Keep a record of the coordinates:
 		crval1 = self.hdr['crval1']
@@ -150,12 +155,14 @@ class TDViz(HasTraits):
 	def _plotbutton1_fired(self):
 		mlab.clf()
 		self.loaddata()
+		self.sregion[np.where(self.sregion<self.datamin)] = 0
+		self.sregion[np.where(self.sregion>self.datamax)] = self.datamax
 		# The following code is from: http://docs.enthought.com/mayavi/mayavi/auto/example_atomic_orbital.html#example-atomic-orbital
 		field = mlab.pipeline.scalar_field(self.sregion)     # Generate a scalar field
 		colored = self.sregion
 		vol=self.sregion.shape
 		for v in range(0,vol[2]-1):
-			colored[:,:,v] = self.extent[4] + v*self.hdr['cdelt3']
+			colored[:,:,v] = self.extent[4] + v*(-1)*abs(self.hdr['cdelt3'])
 		field.image_data.point_data.add_array(colored.T.ravel())
 		field.image_data.point_data.get_array(1).name = 'color'
 		field.image_data.point_data.update()
@@ -164,15 +171,53 @@ class TDViz(HasTraits):
 		contour = mlab.pipeline.contour(field2)
 		contour2 = mlab.pipeline.set_active_attribute(contour, point_scalars='color')
 
-		mlab.pipeline.surface(contour2, colormap='gist_rainbow')
+		mlab.pipeline.surface(contour2, colormap='jet')
 		
 		#mlab.pipeline.volume(field,vmax=self.datamax,vmin=self.datamin) # Render the field with dots
-		
+	
+		tcolor = (1,1,1)
+		#mlab.text3d(0,self.yrang+10,self.zrang/2,'SiO 5-4',scale=20.,orient_to_camera=False,color=(0,0,1))
+		mlab.text3d(self.xrang/2,-40,self.zrang+40,'R.A.',scale=10.,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-40,self.yrang/2,self.zrang+40,'Decl.',scale=10.,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-40,-40,self.zrang/2-10,'V (km/s)',scale=10.,orient_to_camera=True,color=tcolor)
+		# Label the coordinates of the corners
+		# Lower left corner
+		ra0 = self.extent[0]; dec0 = self.extent[2]
+		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
+		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
+		mlab.text3d(0,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
+		mlab.text3d(-80,0,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		# Upper right corner
+		ra0 = self.extent[1]; dec0 = self.extent[3]
+		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
+		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
+		mlab.text3d(self.xrang,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
+		mlab.text3d(-80,self.yrang,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		# V axis
+		if self.extent[5] > self.extent[4]:
+			v0 = self.extent[4]; v1 = self.extent[5]
+		else:
+			v0 = self.extent[5]; v1 = self.extent[4]
+		mlab.text3d(-20,-20,self.zrang,str(round(v0,1)),scale=8.,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-20,-20,0,str(round(v1,1)),scale=8.,orient_to_camera=True,color=tcolor)
+
+		mlab.axes(field2, ranges=self.extent, x_axis_visibility=False, y_axis_visibility=False, z_axis_visibility=False)
+		#mlab.xlabel('')
+		#mlab.ylabel('')
+		#mlab.zlabel('')
 		mlab.outline()
-		xlab = 'RA (J2000)'
-		ylab = 'DEC (J2000)'
-		zlab = 'Velocity (km/s)'
-		mlab.axes(field, ranges=self.extent, nb_labels=5, xlabel=xlab, ylabel=ylab, zlabel=zlab)
+
+		# Insert a continuum plot
+		#im = pyfits.open('g28_SMA1.cont.image.fits')
+		#dat = im[0].data
+		#dat0 = dat[0]
+		#channel = dat0[0]
+		#region = np.swapaxes(channel[self.xstart:self.xend,self.ystart:self.yend]*1000.,0,1)
+		#field = mlab.contour3d(region, colormap='gist_ncar')
+		#field.contour.minimum_contour = 5
+
 		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
 		
@@ -207,8 +252,9 @@ class TDViz(HasTraits):
 		cut.contour.number_of_contours=5
 
 	def _save_the_scene_fired(self):
-		mlab.savefig('jun23.obj')
-		mlab.savefig('jun23.iv')
+		#mlab.savefig('jun23.obj')
+		#mlab.savefig('jun23.iv')
+		mlab.savefig('jun25.wrl')
 
 	def _movie_fired(self):
 		if os.path.exists("./tenpfigz"):
