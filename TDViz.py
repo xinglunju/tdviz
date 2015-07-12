@@ -153,6 +153,40 @@ class TDViz(HasTraits):
 		vel_end /= 1e3
 
 		self.extent =[ra_start, ra_end, dec_start, dec_end, vel_start, vel_end]
+	
+	def labels(self):
+		'''
+		Add 3d text to show the axes.
+		'''
+		tcolor = (1,1,1)
+		mlab.text3d(self.xrang/2,-40,self.zrang+40,'R.A.',scale=10.,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-40,self.yrang/2,self.zrang+40,'Decl.',scale=10.,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-40,-40,self.zrang/2-10,'V (km/s)',scale=10.,orient_to_camera=True,color=tcolor)
+		# Label the coordinates of the corners
+		# Lower left corner
+		ra0 = self.extent[0]; dec0 = self.extent[2]
+		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
+		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
+		mlab.text3d(0,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
+		mlab.text3d(-80,0,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		# Upper right corner
+		ra0 = self.extent[1]; dec0 = self.extent[3]
+		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
+		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
+		mlab.text3d(self.xrang,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
+		mlab.text3d(-80,self.yrang,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
+		# V axis
+		if self.extent[5] > self.extent[4]:
+			v0 = self.extent[4]; v1 = self.extent[5]
+		else:
+			v0 = self.extent[5]; v1 = self.extent[4]
+		mlab.text3d(-20,-20,self.zrang,str(round(v0,1)),scale=8.,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-20,-20,0,str(round(v1,1)),scale=8.,orient_to_camera=True,color=tcolor)
+
+		mlab.axes(self.field, ranges=self.extent, x_axis_visibility=False, y_axis_visibility=False, z_axis_visibility=False)
+		mlab.outline()
 
 	def _plotbutton1_fired(self):
 		mlab.clf()
@@ -175,50 +209,19 @@ class TDViz(HasTraits):
 
 		mlab.pipeline.surface(contour2, colormap='jet')
 		
-		tcolor = (1,1,1)
-		#mlab.text3d(0,self.yrang+10,self.zrang/2,'SiO 5-4',scale=20.,orient_to_camera=False,color=(0,0,1))
-		mlab.text3d(self.xrang/2,-40,self.zrang+40,'R.A.',scale=10.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,self.yrang/2,self.zrang+40,'Decl.',scale=10.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,-40,self.zrang/2-10,'V (km/s)',scale=10.,orient_to_camera=True,color=tcolor)
-		# Label the coordinates of the corners
-		# Lower left corner
-		ra0 = self.extent[0]; dec0 = self.extent[2]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
-		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(0,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,0,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		# Upper right corner
-		ra0 = self.extent[1]; dec0 = self.extent[3]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
-		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(self.xrang,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,self.yrang,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		# V axis
-		if self.extent[5] > self.extent[4]:
-			v0 = self.extent[4]; v1 = self.extent[5]
-		else:
-			v0 = self.extent[5]; v1 = self.extent[4]
-		mlab.text3d(-20,-20,self.zrang,str(round(v0,1)),scale=8.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-20,-20,0,str(round(v1,1)),scale=8.,orient_to_camera=True,color=tcolor)
+		## Insert a continuum plot
+		##im = pyfits.open('g28_SMA1.cont.image.fits')
+		##dat = im[0].data
+		##dat0 = dat[0]
+		##channel = dat0[0]
+		##region = np.swapaxes(channel[self.xstart:self.xend,self.ystart:self.yend]*1000.,0,1)
+		##field = mlab.contour3d(region, colormap='gist_ncar')
+		##field.contour.minimum_contour = 5
 
-		mlab.axes(field2, ranges=self.extent, x_axis_visibility=False, y_axis_visibility=False, z_axis_visibility=False)
-		mlab.outline()
-
-		# Insert a continuum plot
-		#im = pyfits.open('g28_SMA1.cont.image.fits')
-		#dat = im[0].data
-		#dat0 = dat[0]
-		#channel = dat0[0]
-		#region = np.swapaxes(channel[self.xstart:self.xend,self.ystart:self.yend]*1000.,0,1)
-		#field = mlab.contour3d(region, colormap='gist_ncar')
-		#field.contour.minimum_contour = 5
-
+		self.field = field
+		self.labels()
 		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
-		
-		self.field   = field
 
 	def _plotbutton2_fired(self):
 		mlab.clf()
@@ -229,88 +232,21 @@ class TDViz(HasTraits):
 		field.contour.minimum_contour = self.datamin
 		field.actor.property.opacity = self.opacity
 
-		tcolor = (1,1,1)
-		#mlab.text3d(0,self.yrang+10,self.zrang/2,'SiO 5-4',scale=20.,orient_to_camera=False,color=(0,0,1))
-		mlab.text3d(self.xrang/2,-40,self.zrang+40,'R.A.',scale=10.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,self.yrang/2,self.zrang+40,'Decl.',scale=10.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,-40,self.zrang/2-10,'V (km/s)',scale=10.,orient_to_camera=True,color=tcolor)
-		# Label the coordinates of the corners
-		# Lower left corner
-		ra0 = self.extent[0]; dec0 = self.extent[2]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
-		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(0,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,0,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		# Upper right corner
-		ra0 = self.extent[1]; dec0 = self.extent[3]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
-		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(self.xrang,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,self.yrang,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		# V axis
-		if self.extent[5] > self.extent[4]:
-			v0 = self.extent[4]; v1 = self.extent[5]
-		else:
-			v0 = self.extent[5]; v1 = self.extent[4]
-		mlab.text3d(-20,-20,self.zrang,str(round(v0,1)),scale=8.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-20,-20,0,str(round(v1,1)),scale=8.,orient_to_camera=True,color=tcolor)
-
-		mlab.axes(field, ranges=self.extent, x_axis_visibility=False, y_axis_visibility=False, z_axis_visibility=False)
-		mlab.outline()
-
-		#mlab.outline()
-		#xlab = 'RA (J2000)'
-		#ylab = 'DEC (J2000)'
-		#zlab = 'Velocity (km/s)'
-		#mlab.axes(field, ranges=self.extent, nb_labels=5, xlabel=xlab, ylabel=ylab, zlabel=zlab)
+		self.field = field
+		self.labels()
 		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
-
-		self.field   = field
 	
 	def _plotbutton3_fired(self):
 		mlab.clf()
 		self.loaddata()
 		field = mlab.pipeline.scalar_field(self.sregion) # Generate a scalar field
 		mlab.pipeline.volume(field,vmax=self.datamax,vmin=self.datamin)
-
-		tcolor = (1,1,1)
-		#mlab.text3d(0,self.yrang+10,self.zrang/2,'SiO 5-4',scale=20.,orient_to_camera=False,color=(0,0,1))
-		mlab.text3d(self.xrang/2,-40,self.zrang+40,'R.A.',scale=10.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,self.yrang/2,self.zrang+40,'Decl.',scale=10.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,-40,self.zrang/2-10,'V (km/s)',scale=10.,orient_to_camera=True,color=tcolor)
-		# Label the coordinates of the corners
-		# Lower left corner
-		ra0 = self.extent[0]; dec0 = self.extent[2]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
-		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(0,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,0,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		# Upper right corner
-		ra0 = self.extent[1]; dec0 = self.extent[3]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
-		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(self.xrang,-20,self.zrang+20,RA_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,self.yrang,self.zrang+20,DEC_ll,scale=8.,orient_to_camera=True,color=tcolor)
-		# V axis
-		if self.extent[5] > self.extent[4]:
-			v0 = self.extent[4]; v1 = self.extent[5]
-		else:
-			v0 = self.extent[5]; v1 = self.extent[4]
-		mlab.text3d(-20,-20,self.zrang,str(round(v0,1)),scale=8.,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-20,-20,0,str(round(v1,1)),scale=8.,orient_to_camera=True,color=tcolor)
-
-		mlab.axes(field, ranges=self.extent, x_axis_visibility=False, y_axis_visibility=False, z_axis_visibility=False)
-		mlab.outline()
-
+		
+		self.field = field
+		self.labels()
 		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
-		
-		self.field   = field
 
 #	def _datamax_changed(self):
 #		if hasattr(self, "field"):
@@ -322,9 +258,7 @@ class TDViz(HasTraits):
 		cut.contour.number_of_contours=5
 
 	def _save_the_scene_fired(self):
-		#mlab.savefig('jun23.obj')
-		#mlab.savefig('jun23.iv')
-		mlab.savefig('jun25.wrl')
+		mlab.savefig('test.wrl')
 
 	def _movie_fired(self):
 		if os.path.exists("./tenpfigz"):
