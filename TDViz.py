@@ -24,6 +24,7 @@ class TDViz(HasTraits):
 	rendering = Enum("Surface-Spectrum", "Surface-Intensity", "Volume-Intensity")
 	save_the_scene = Button(u"Save")
 	add_cut = Button(u"Cutthrough")
+	remove_cut = Button(u"Remove the Last Cut")
 	movie = Button(u"Movie")
 	spin = Button(u"Spin")
 	zscale = Float(1.0)
@@ -57,6 +58,7 @@ class TDViz(HasTraits):
 			Item('opacity', tooltip=u"Opacity of the scene", show_label=True),
 			Item("save_the_scene", tooltip=u"Save current scene in a .wrl file", visible_when="rendering=='Surface-Spectrum' or rendering=='Surface-Intensity'"),
 			Item("add_cut", tooltip="Add a cutthrough view"),
+			Item("remove_cut", tooltip="Remove all cutthroughs"),
 			Item("movie", tooltip="Make a GIF movie"),
 			Item("spin", tooltip="Spin 360 degrees"),
 			'clearbutton',
@@ -87,23 +89,39 @@ class TDViz(HasTraits):
 			self.data = np.swapaxes(dat[0],0,2)*1000.0
 		elif naxis == 3:
 			self.data = np.swapaxes(dat,0,2)*1000.0
-		onevpix = self.hdr['CDELT3']
-		## Flip the V axis
-		if onevpix > 0:
-			self.data = self.data[:,:,::-1]
+		#onevpix = self.hdr['CDELT3']
 		self.data[np.isnan(self.data)] = 0.0
 		self.data[np.isinf(self.data)] = 0.0
 
 		self.datamax = np.asscalar(np.max(self.data))
 		self.datamin = np.asscalar(np.min(self.data))
-		self.xend    = self.data.shape[0]
-		self.yend    = self.data.shape[1]
-		self.zend    = self.data.shape[2]
+		self.xend    = self.data.shape[0] - 1 
+		self.yend    = self.data.shape[1] - 1
+		self.zend    = self.data.shape[2] - 1
 
 		self.data[self.data<self.datamin] = self.datamin
 
 	def loaddata(self):
 		channel = self.data
+		## Reset the range if it is beyond the cube:
+		if self.xstart < 0:
+			print 'Wrong number!'
+			self.xstart = 0
+		if self.xend > channel.shape[0]-1:
+			print 'Wrong number!'
+			self.xend = channel.shape[0]-1
+		if self.ystart < 0:
+			print 'Wrong number!'
+			self.ystart = 0
+		if self.yend > channel.shape[1]-1:
+			print 'Wrong number!'
+			self.yend = channel.shape[1]-1
+		if self.zstart < 0:
+			print 'Wrong number!'
+			self.zstart = 0
+		if self.zend > channel.shape[2]-1:
+			print 'Wrong number!'
+			self.zend = channel.shape[2]-1
 		## Select a region, use mJy unit
 		region=channel[self.xstart:self.xend,self.ystart:self.yend,self.zstart:self.zend]
 
@@ -122,6 +140,13 @@ class TDViz(HasTraits):
 		        chanindex2=np.linspace(0,vol[2]-1,vol[2]*stretch)
 		        sregion[j,k,:]=splev(chanindex2,tck)
 		self.sregion = sregion
+		# Reset the max/min values
+		if self.datamin < np.asscalar(np.min(self.sregion)):
+			print 'Wrong number!'
+			self.datamin = np.asscalar(np.min(self.sregion))
+		if self.datamax > np.asscalar(np.max(self.sregion)):
+			print 'Wrong number!'
+			self.datamax = np.asscalar(np.max(self.sregion))
 		self.xrang = abs(self.xstart - self.xend)
 		self.yrang = abs(self.ystart - self.yend)
 		self.zrang = abs(self.zstart - self.zend)*stretch
@@ -137,20 +162,25 @@ class TDViz(HasTraits):
 		cdelt3 = self.hdr['cdelt3']
 		crpix3 = self.hdr['crpix3']
 
-		ra_start = (self.xstart - crpix1) * cdelt1 + crval1
-		ra_end = (self.xend - crpix1) * cdelt1 + crval1
+		ra_start = (self.xstart + 1 - crpix1) * cdelt1 + crval1
+		ra_end = (self.xend + 1 - crpix1) * cdelt1 + crval1
 		#if ra_start < ra_end:
 		#	ra_start, ra_end = ra_end, ra_start
-		dec_start = (self.ystart - crpix2) * cdelt2 + crval2
-		dec_end = (self.yend - crpix2) * cdelt2 + crval2
+		dec_start = (self.ystart + 1 - crpix2) * cdelt2 + crval2
+		dec_end = (self.yend + 1 - crpix2) * cdelt2 + crval2
 		#if dec_start > dec_end:
 		#	dec_start, dec_end = dec_end, dec_start
-		vel_start = (self.zstart - crpix3) * cdelt3 + crval3
-		vel_end = (self.zend - crpix3) * cdelt3 + crval3
+		vel_start = (self.zstart +1 - crpix3) * cdelt3 + crval3
+		vel_end = (self.zend + 1 - crpix3) * cdelt3 + crval3
 		#if vel_start < vel_end:
 		#	vel_start, vel_end = vel_end, vel_start
 		vel_start /= 1e3
 		vel_end /= 1e3
+
+		## Flip the V axis
+		if cdelt3 > 0:
+			self.sregion = self.sregion[:,:,::-1]
+			vel_start, vel_end = vel_end, vel_start
 
 		self.extent =[ra_start, ra_end, dec_start, dec_end, vel_start, vel_end]
 	
@@ -253,9 +283,12 @@ class TDViz(HasTraits):
 #			self.field.contour.maximum_contour = self.datamax
 
 	def _add_cut_fired(self):
-		cut=mlab.pipeline.scalar_cut_plane(self.field,plane_orientation="x_axes")
-		cut.enable_contours=True
-		cut.contour.number_of_contours=5
+		self.cut=mlab.pipeline.scalar_cut_plane(self.field,plane_orientation="x_axes")
+		self.cut.enable_contours=True
+		self.cut.contour.number_of_contours=5
+
+	def _remove_cut_fired(self):
+		self.cut.stop()
 
 	def _save_the_scene_fired(self):
 		mlab.savefig('test.wrl')
@@ -270,24 +303,30 @@ class TDViz(HasTraits):
 			os.system("rm -rf ./tenpfigz/*.png")
 
 		i = 0
+		## Quality of the movie: 0 is the worst, 8 is ok.
+		self.field.scene.anti_aliasing_frames = 8
+		self.field.scene.disable_render = True
 		mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.png')
 		while i<18:
 			self.field.scene.camera.azimuth(5)
 			self.field.scene.render()
-			i +=1
+			i += 1
 			if i<10:
 				mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.png')
 			elif 9<i<100:
 				mlab.savefig('./tenpfigz/screenshot'+str(i)+'.png')
+		self.field.scene.disable_render = False
 
 		os.system("convert -delay 50 -loop 1 ./tenpfigz/*.png ./tenpfigz/animation.gif")
 	
 	def _spin_fired(self):
 		i = 0
+		#self.field.scene.disable_render = False
 		while i<72:
 			self.field.scene.camera.azimuth(5)
 			self.field.scene.render()
 			i += 1
+		#self.field.scene.disable_render = False
 
 	def _clearbutton_fired(self):
 		mlab.clf()
