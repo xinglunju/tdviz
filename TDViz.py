@@ -313,25 +313,25 @@ class TDViz(HasTraits):
 		else:
 			os.system("mkdir tenpfigz")
 
-		if filter(os.path.isfile, glob.glob("./tenpfigz/*.png")) != []:
-			os.system("rm -rf ./tenpfigz/*.png")
+		if filter(os.path.isfile, glob.glob("./tenpfigz/*.jpg")) != []:
+			os.system("rm -rf ./tenpfigz/*.jpg")
 
 		i = 0
 		## Quality of the movie: 0 is the worst, 8 is ok.
 		self.field.scene.anti_aliasing_frames = self.quality
 		self.field.scene.disable_render = True
-		mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.png')
+		mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.jpg')
 		while i<(self.angle/5):
 			self.field.scene.camera.azimuth(5)
 			self.field.scene.render()
 			i += 1
 			if i<10:
-				mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.png')
+				mlab.savefig('./tenpfigz/screenshot0'+str(i)+'.jpg')
 			elif 9<i<100:
-				mlab.savefig('./tenpfigz/screenshot'+str(i)+'.png')
+				mlab.savefig('./tenpfigz/screenshot'+str(i)+'.jpg')
 		self.field.scene.disable_render = False
 
-		os.system("convert -delay "+str(self.delay)+" -loop "+str(self.iteration)+" ./tenpfigz/*.png ./tenpfigz/animation.gif")
+		os.system("convert -delay "+str(self.delay)+" -loop "+str(self.iteration)+" ./tenpfigz/*.jpg ./tenpfigz/animation.gif")
 	
 	def _spin_fired(self):
 		i = 0
