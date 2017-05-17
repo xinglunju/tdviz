@@ -32,13 +32,13 @@ class TDViz(HasTraits):
 	delay		= Int(0)
 	angle		= Int(360)
 	spin = Button(u"Spin")
-	zscale = Float(1.0)
-	xstart = Float(0.0)
-	xend   = Float(1.0)
-	ystart = Float(0.0)
-	yend   = Float(1.0)
-	zstart = Float(0.0)
-	zend   = Float(1.0)
+	zscale = Int(1)
+	xstart = Int(0)
+	xend   = Int(1)
+	ystart = Int(0)
+	yend   = Int(1)
+	zstart = Int(0)
+	zend   = Int(1)
 	datamin= Float(0.0)
 	datamax= Float(1.0)
 	opacity= Float(0.3)
@@ -202,31 +202,31 @@ class TDViz(HasTraits):
 		'''
 		fontsize = max(self.xrang, self.yrang)/40.
 		tcolor = (1,1,1)
-		mlab.text3d(self.xrang/2,-40,self.zrang+40,'R.A.',scale=fontsize,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,self.yrang/2,self.zrang+40,'Decl.',scale=fontsize,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-40,-40,self.zrang/2-10,'V (km/s)',scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(self.xrang/2,-10,self.zrang+10,'R.A.',scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-10,self.yrang/2,self.zrang+10,'Decl.',scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-10,-10,self.zrang/2-10,'V (km/s)',scale=fontsize,orient_to_camera=True,color=tcolor)
 		# Label the coordinates of the corners
 		# Lower left corner
 		ra0 = self.extent[0]; dec0 = self.extent[2]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
+		c = coord.ICRS(ra=ra0*u.degree, dec=dec0*u.degree)
 		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(0,-20,self.zrang+20,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(0,-5,self.zrang+5,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,0,self.zrang+20,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-20,0,self.zrang+5,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		# Upper right corner
 		ra0 = self.extent[1]; dec0 = self.extent[3]
-		c = coord.ICRS(ra=ra0, dec=dec0, unit=(u.degree, u.degree))
+		c = coord.ICRS(ra=ra0*u.degree, dec=dec0*u.degree)
 		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(self.xrang,-20,self.zrang+20,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(self.xrang,-5,self.zrang+5,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-80,self.yrang,self.zrang+20,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-20,self.yrang,self.zrang+5,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		# V axis
 		if self.extent[5] > self.extent[4]:
 			v0 = self.extent[4]; v1 = self.extent[5]
 		else:
 			v0 = self.extent[5]; v1 = self.extent[4]
-		mlab.text3d(-20,-20,self.zrang,str(round(v0,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-20,-20,0,str(round(v1,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-4,-4,self.zrang,str(round(v0,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-4,-4,0,str(round(v1,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
 
 		mlab.axes(self.field, ranges=self.extent, x_axis_visibility=False, y_axis_visibility=False, z_axis_visibility=False)
 		mlab.outline()
