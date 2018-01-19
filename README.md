@@ -1,8 +1,8 @@
-#A simple tool of visualizing 3-D datacubes in FITS format
+# A simple tool of visualizing 3-D datacubes in FITS format
 
 The visualization is implemented by MayaVI and the interface is made with TraitsUI.
 
-##Denpendencies
+## Denpendencies
 
 * Mayavi,
 * TraitsUI,
@@ -11,7 +11,18 @@ The visualization is implemented by MayaVI and the interface is made with Traits
 * scipy,
 * and ImageMagick to make the movies.
 
-##Render the P-P-V datacubes in three options
+## Versions
+
+There seems to be some conflicts between latest versions of numpy and Traits.
+
+Please try using the following versions, which work well for me:
+* mayavi==4.3.0
+* traits==4.3.0
+* traitsui==4.3.0
+* numpy==1.9.1
+* astropy==2.0.2
+
+## Render the P-P-V datacubes in three options
 
 1. Iso-surfaces colored by velocities.
 2. Iso-surfaces colored by intensities.
@@ -19,7 +30,7 @@ The visualization is implemented by MayaVI and the interface is made with Traits
 
 The first two can be saved in a 'mesh' file and be imported to softwares such as Blender or Meshlab, and be uploaded to Sketchfab.
 
-##Known issues
+## Known issues
 
 1. Cannot load a different fits file if the current file name includes path: have to delete the current 'fitsfile' name first...
 2. The latest Mayavi (v4.4+) does not allow a random name for a new attribute of a field. I have to revert to the previous Mayavi version (v4.3).
