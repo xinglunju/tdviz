@@ -5,6 +5,8 @@ The visualization is implemented by MayaVI and the interface is made with Traits
 ## Denpendencies
 
 * Mayavi,
+* pyface,
+* Trauts,
 * TraitsUI,
 * astropy,
 * numpy,
@@ -17,6 +19,7 @@ There seems to be some conflicts between latest versions of numpy and Traits.
 
 Please try using the following versions, which work well for me:
 * mayavi==4.3.0
+* pyface==4.3.0
 * traits==4.3.0
 * traitsui==4.3.0
 * numpy==1.9.1
