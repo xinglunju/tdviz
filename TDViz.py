@@ -4,15 +4,12 @@ from tvtk.pyface.scene_editor import SceneEditor
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi import mlab
-from astropy import coordinates as coord
+from astropy.coordinates import SkyCoord
 from astropy import units as u
+import astropy.io.fits as pyfits
 import numpy as np
 import os
 import glob
-try:
-	import astropy.io.fits as pyfits
-except ImportError:
-	import pyfits
 
 class TDViz(HasTraits):
 	fitsfile    = File(filter=[u"*.fits"])
@@ -23,9 +20,7 @@ class TDViz(HasTraits):
 	scene = Instance(MlabSceneModel, ())
 	rendering = Enum("Surface-Spectrum", "Surface-Intensity", "Volume-Intensity")
 	save_the_scene = Button(u"Save")
-	save_in_file = Str("test.wrl")
-	add_cut = Button(u"Cutthrough")
-	remove_cut = Button(u"Remove the Last Cut")
+	save_in_file = Str("test.x3d")
 	movie = Button(u"Movie")
 	iteration	= Int(0)
 	quality		= Int(8)
@@ -41,16 +36,21 @@ class TDViz(HasTraits):
 	zend   = Int(1)
 	datamin= Float(0.0)
 	datamax= Float(1.0)
-	opacity= Float(0.3)
+	opacity= Float(0.4)
+	dist = Float(0.0)
+	leng = Float(0.0)
+	vsp = Float(0.0)
+	contfile = File(filter=[u"*.fits"])
 
 	view = View(
       HSplit(
 		VGroup(
 			Item("fitsfile", label=u"Select a FITS datacube", show_label=True),
-			Item("rendering", tooltip=u"Choose the rendering type you like", show_label=True),
-			Item('plotbutton1', tooltip=u"Plot the 3D scene with surface rendering, colored by spectrum", visible_when="rendering=='Surface-Spectrum'"),
-			Item('plotbutton2', tooltip=u"Plot the 3D scene with surface rendering, colored by intensity", visible_when="rendering=='Surface-Intensity'"),
-			Item('plotbutton3', tooltip=u"Plot the 3D scene with volume rendering, colored by intensity", visible_when="rendering=='Volume-Intensity'"),
+			Item("rendering", tooltip=u"Choose the rendering type", show_label=True),
+			Item('plotbutton1', tooltip=u"Plot 3D surfaces, color coded by velocities", visible_when="rendering=='Surface-Spectrum'"),
+			Item('plotbutton2', tooltip=u"Plot 3D surfaces, color coded by intensities", visible_when="rendering=='Surface-Intensity'"),
+			Item('plotbutton3', tooltip=u"Plot 3D dots, color coded by intensities", visible_when="rendering=='Volume-Intensity'"),
+			"clearbutton",
 			HGroup(Item('xstart', tooltip=u"starting pixel in X axis", show_label=True, springy=True),
 				   Item('xend', tooltip=u"ending pixel in X axis", show_label=True, springy=True)),
 			HGroup(Item('ystart', tooltip=u"starting pixel in Y axis", show_label=True, springy=True),
@@ -59,21 +59,23 @@ class TDViz(HasTraits):
 				   Item('zend', tooltip=u"ending pixel in Z axis", show_label=True, springy=True)),
 			HGroup(Item('datamax', tooltip=u"Maximum datapoint shown", show_label=True, springy=True),
 				   Item('datamin', tooltip=u"Minimum datapoint shown", show_label=True, springy=True)),
-			Item('zscale', tooltip=u"Stretch the datacube in Z axis", show_label=True),
-			Item('opacity', tooltip=u"Opacity of the scene", show_label=True),
-			Item("add_cut", tooltip="Add a cutthrough view"),
-			Item("remove_cut", tooltip="Remove all cutthroughs"),
-			Item("spin", tooltip=u"Spin 360 degrees"),
-			"clearbutton",
+			HGroup(Item('dist', tooltip=u"Put a distance in kpc", show_label=True),
+				   Item('leng', tooltip=u"Put a non-zero bar length in pc to show the scale bar", show_label=True),
+				   Item('vsp', tooltip=u"Put a non-zero velocity range in km/s to show the scale bar", show_label=True)),
+			HGroup(Item('zscale', tooltip=u"Stretch the datacube in Z axis", show_label=True),
+				   Item('opacity', tooltip=u"Opacity of the scene", show_label=True), show_labels=False),
 			Item('_'),
-			Item("movie", tooltip="Make a GIF movie", show_label=False),
+			Item("contfile", label=u"Add background contours", tooltip=u"This file must be of the same (first two) dimension as the datacube!!!", show_label=True),
+			Item('_'),
+			HGroup(Item("spin", tooltip=u"Spin 360 degrees", show_label=False),
+				   Item("movie", tooltip="Make a GIF movie", show_label=False)),
 			HGroup(Item('iteration', tooltip=u"number of iterations, 0 means inf.", show_label=True),
 				   Item('quality', tooltip=u"quality of plots, 0 is worst, 8 is good.", show_label=True)),
 			HGroup(Item('delay', tooltip=u"time delay between frames, in millisecond.", show_label=True),
 				   Item('angle', tooltip=u"angle the cube spins", show_label=True)),
 			Item('_'),
-			Item("save_the_scene", tooltip=u"Save current scene in a .wrl file", visible_when="rendering=='Surface-Spectrum' or rendering=='Surface-Intensity'"),
-			Item("save_in_file", tooltip=u"3D model file name", show_label=True),
+			HGroup(Item("save_the_scene", tooltip=u"Save current scene in a 3D model file"),
+				   Item("save_in_file", tooltip=u"3D model file name", show_label=False), visible_when="rendering=='Surface-Spectrum' or rendering=='Surface-Intensity'"),
 			show_labels=False
 		),
 		VGroup(
@@ -205,28 +207,48 @@ class TDViz(HasTraits):
 		mlab.text3d(self.xrang/2,-10,self.zrang+10,'R.A.',scale=fontsize,orient_to_camera=True,color=tcolor)
 		mlab.text3d(-10,self.yrang/2,self.zrang+10,'Decl.',scale=fontsize,orient_to_camera=True,color=tcolor)
 		mlab.text3d(-10,-10,self.zrang/2-10,'V (km/s)',scale=fontsize,orient_to_camera=True,color=tcolor)
+
+		# Add scale bars
+		if self.leng != 0.0:
+			distance = self.dist * 1e3
+			length = self.leng
+			leng_pix = np.round(length/distance/np.pi*180./np.abs(self.hdr['cdelt1']))
+			bar_x = [self.xrang-20-leng_pix, self.xrang-20]
+			bar_y = [self.yrang-10, self.yrang-10]
+			bar_z = [0, 0]
+			mlab.plot3d(bar_x, bar_y, bar_z, color=tcolor, tube_radius=1.)
+			mlab.text3d(self.xrang-30-leng_pix,self.yrang-25,0,'{:.2f} pc'.format(length),scale=fontsize,orient_to_camera=False,color=tcolor)
+		if self.vsp != 0.0:
+			vspan = self.vsp
+			vspan_pix = np.round(vspan/np.abs(self.hdr['cdelt3']/1e3))
+			bar_x = [self.xrang, self.xrang]
+			bar_y = [self.yrang-10, self.yrang-10]
+			bar_z = np.array([5, 5+vspan_pix])*self.zscale
+			mlab.plot3d(bar_x, bar_y, bar_z, color=tcolor, tube_radius=1.)
+			mlab.text3d(self.xrang,self.yrang-25,10,'{:.1f} km/s'.format(vspan),scale=fontsize,orient_to_camera=False,color=tcolor,orientation=(0,90,0))
+
 		# Label the coordinates of the corners
 		# Lower left corner
 		ra0 = self.extent[0]; dec0 = self.extent[2]
-		c = coord.ICRS(ra=ra0*u.degree, dec=dec0*u.degree)
+		c = SkyCoord(ra=ra0*u.degree, dec=dec0*u.degree, frame='icrs')
 		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(0,-5,self.zrang+5,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(0,-10,self.zrang+5,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-20,0,self.zrang+5,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-40,0,self.zrang+5,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		# Upper right corner
 		ra0 = self.extent[1]; dec0 = self.extent[3]
-		c = coord.ICRS(ra=ra0*u.degree, dec=dec0*u.degree)
+		c = SkyCoord(ra=ra0*u.degree, dec=dec0*u.degree, frame='icrs')
 		RA_ll = str(int(c.ra.hms.h))+'h'+str(int(c.ra.hms.m))+'m'+str(round(c.ra.hms.s,1))+'s'
-		mlab.text3d(self.xrang,-5,self.zrang+5,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(self.xrang,-10,self.zrang+5,RA_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		DEC_ll = str(int(c.dec.dms.d))+'d'+str(int(abs(c.dec.dms.m)))+'m'+str(round(abs(c.dec.dms.s),1))+'s'
-		mlab.text3d(-20,self.yrang,self.zrang+5,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-40,self.yrang,self.zrang+5,DEC_ll,scale=fontsize,orient_to_camera=True,color=tcolor)
 		# V axis
 		if self.extent[5] > self.extent[4]:
 			v0 = self.extent[4]; v1 = self.extent[5]
 		else:
 			v0 = self.extent[5]; v1 = self.extent[4]
-		mlab.text3d(-4,-4,self.zrang,str(round(v0,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
-		mlab.text3d(-4,-4,0,str(round(v1,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-10,-10,self.zrang,str(round(v0,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
+		mlab.text3d(-10,-10,0,str(round(v1,1)),scale=fontsize,orient_to_camera=True,color=tcolor)
 
 		mlab.axes(self.field, ranges=self.extent, x_axis_visibility=False, y_axis_visibility=False, z_axis_visibility=False)
 		mlab.outline()
@@ -254,15 +276,17 @@ class TDViz(HasTraits):
 		mlab.pipeline.surface(contour2, colormap='jet', opacity=self.opacity)
 		
 		## Insert a continuum plot
-		##im = pyfits.open('g28_SMA1.cont.image.fits')
-		##dat = im[0].data
-		##dat0 = dat[0]
-		##channel = dat0[0]
-		##region = np.swapaxes(channel[self.xstart:self.xend,self.ystart:self.yend]*1000.,0,1)
-		##field = mlab.contour3d(region, colormap='gist_ncar')
-		##field.contour.minimum_contour = 5
+		if self.contfile != '':
+			im = pyfits.open(self.contfile)
+			dat = im[0].data
+			##dat0 = dat[0]
+			channel = dat[0]
+			region = np.swapaxes(channel[self.ystart:self.yend,self.xstart:self.xend]*1000.,0,1)
+			field = mlab.contour3d(region, colormap='gist_ncar')
+			field.contour.minimum_contour = 5
 
-		self.field = field
+		self.field = field2
+		self.field.scene.render()
 		self.labels()
 		mlab.view(azimuth=0, elevation=0, distance='auto')
 		mlab.show()
@@ -295,14 +319,6 @@ class TDViz(HasTraits):
 #	def _datamax_changed(self):
 #		if hasattr(self, "field"):
 #			self.field.contour.maximum_contour = self.datamax
-
-	def _add_cut_fired(self):
-		self.cut=mlab.pipeline.scalar_cut_plane(self.field,plane_orientation="x_axes")
-		self.cut.enable_contours=True
-		self.cut.contour.number_of_contours=5
-
-	def _remove_cut_fired(self):
-		self.cut.stop()
 
 	def _save_the_scene_fired(self):
 		mlab.savefig(self.save_in_file)

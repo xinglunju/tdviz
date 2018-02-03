@@ -1,6 +1,7 @@
 # A simple tool of visualizing 3-D datacubes in FITS format
 
 The visualization is implemented by MayaVI and the interface is made with TraitsUI.
+It stems from my homework for the [ay201b](https://ay201b.wordpress.com/topical-modules/2013-topical-modules/) course.
 
 ## Denpendencies
 
@@ -11,7 +12,7 @@ The visualization is implemented by MayaVI and the interface is made with Traits
 * astropy,
 * numpy,
 * scipy,
-* and ImageMagick to make the movies.
+* (optional) and ImageMagick to make GIF movies.
 
 ## Versions
 
@@ -35,6 +36,6 @@ The first two can be saved in a 'mesh' file and be imported to softwares such as
 
 ## Known issues
 
-1. Cannot load a different fits file if the current file name includes path: have to delete the current 'fitsfile' name first...
+1. Cannot load a different fits file if the current file name includes path: have to delete the current 'fitsfile' name, then nagivate to the new fits file.
 2. The latest Mayavi (v4.4+) does not allow a random name for a new attribute of a field. I have to revert to the previous Mayavi version (v4.3).
 3. To be found...
