@@ -1,5 +1,4 @@
 from traits.api import HasTraits, Button, Instance, List, Str, Enum, Float, File, Int
-#from traitsui.api import View, Item, VGroup, HSplit, CheckListEditor, HGroup, Group, FileEditor
 from traitsui.api import View, Item, VGroup, HSplit, HGroup, FileEditor
 from tvtk.pyface.scene_editor import SceneEditor
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -7,10 +6,9 @@ from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi import mlab
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-import astropy.io.fits as pyfits
+import astropy.io.fits as fits
 import numpy as np
-import os 
-import glob
+import os, glob
 
 class TDViz(HasTraits):
 	fitsfile    = File(filter=[u"*.fits"])
@@ -93,12 +91,12 @@ class TDViz(HasTraits):
 	)
 
 	def _fitsfile_changed(self):
-		img = pyfits.open(self.fitsfile)     # Read the fits data
+		img = fits.open(self.fitsfile)     # Read the fits data
 		dat = img[0].data
 		self.hdr  = img[0].header
 		
 		naxis = self.hdr['NAXIS']
-		## The three axes loaded by pyfits are: velo, dec, ra
+		## The three axes loaded by fits are: velo, dec, ra
 		## Swap the axes, RA<->velo
 		if naxis == 4:
 			self.data = np.swapaxes(dat[0],0,2)*1000.0
@@ -266,9 +264,9 @@ class TDViz(HasTraits):
 		vol=self.sregion.shape
 		for v in range(0,vol[2]-1):
 			colored[:,:,v] = self.extent[4] + v*(-1)*abs(self.hdr['cdelt3'])
-		new = field.image_data.point_data.add_array(colored.T.ravel())
-		field.image_data.point_data.get_array(new).name = 'color'
-		field.image_data.point_data.update()
+		field.image_data.point_data.add_array(colored.T.ravel())
+		field.image_data.point_data.get_array(1).name = 'color'
+		field.update()
 
 		field2 = mlab.pipeline.set_active_attribute(field, point_scalars='scalar')
 		contour = mlab.pipeline.contour(field2)
@@ -278,7 +276,7 @@ class TDViz(HasTraits):
 		
 		## Insert a continuum plot
 		if self.contfile != '':
-			im = pyfits.open(self.contfile)
+			im = fits.open(self.contfile)
 			dat = im[0].data
 			##dat0 = dat[0]
 			channel = dat[0]

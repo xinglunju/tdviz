@@ -7,26 +7,29 @@ It stems from my homework for the [ay201b](https://ay201b.wordpress.com/topical-
 
 * Mayavi,
 * pyface,
-* Trauts,
+* Traits,
 * TraitsUI,
 * astropy,
 * numpy,
 * scipy,
-* (optional) and ImageMagick to make GIF movies.
+* (optional) ImageMagick to make GIF movies.
 
 ## Versions
 
-There seems to be some conflicts between latest versions of numpy and Traits.
+Now it is full compatible with Python 3 (using TDViz3.py). The old file (TDViz.py) may still work with Python 2 but is not guarenteed.
 
-Please try using the following versions, which work well for me:
-* mayavi==4.3.0
-* pyface==4.3.0
-* traits==4.3.0
-* traitsui==4.3.0
-* numpy==1.9.1
-* astropy==2.0.2
+I tested it with the following environment and everything works well:
 
-## Render the P-P-V datacubes in three options
+* Python==3.7.3
+* mayavi==4.6.2
+* pyface==6.0.0
+* traits==5.1.1
+* traitsui==6.0.0
+* astropy==3.1.2
+* numpy==1.16.3
+* scipy==1.2.1
+
+## Render P-P-V cubes with three options
 
 1. Iso-surfaces colored by velocities.
 2. Iso-surfaces colored by intensities.
@@ -37,5 +40,4 @@ The first two can be saved in a 'mesh' file and be imported to softwares such as
 ## Known issues
 
 1. Cannot load a different fits file if the current file name includes path: have to delete the current 'fitsfile' name, then nagivate to the new fits file.
-2. The latest Mayavi (v4.4+) does not allow a random name for a new attribute of a field. I have to revert to the previous Mayavi version (v4.3).
-3. To be found...
+2. To be found...

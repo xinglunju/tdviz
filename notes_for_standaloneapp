@@ -1,0 +1,45 @@
+
+#############################
+"QString" already set to 1???
+#############################
+## Solution?
+#export QT_API=pyqt
+#$ export ETS_TOOLKIT=qt4
+### Use sip to change version?
+
+## Solution here: https://github.com/pyinstaller/pyinstaller/wiki/Recipe-PyQt4-API-Version
+
+https://mail.scipy.org/pipermail/ipython-user/2012-February/009478.html
+
+https://github.com/spyder-ide/spyder/issues/4727
+
+https://github.com/enthought/mayavi/issues/532
+
+https://github.com/enthought/mayavi/issues/129
+
+https://github.com/enthought/mayavi/issues/338
+
+#############################
+pyinstaller, dynamic imported modules
+#############################
+## Solution:
+## python -v TDViz.py 2>&1 | grep "traitsui.qt"
+
+https://stackoverflow.com/questions/28079792/freezing-exe-a-traitsui-program-realistically-feasible
+
+
+#############################
+ImportError: cannot import name QKeySequence
+#############################
+
+## Check TDViz.spec?
+#
+#
+g Use cx_freeze?
+#
+
+cxfreeze TDViz.py --target-dir /Users/xlu/Documents/Codes/tdviz/dist --init-script=/Users/xlu/Documents/Codes/tdviz/rthook_pyqt4.py --include-modules=pyface.ui.qt4,tvtk.vtk_module,tvtk.pyface.ui.qt4,traitsui.qt4,pyface.qt,PyQt4.Qt
+
+
+
+
