@@ -3,6 +3,8 @@
 The visualization is implemented by MayaVI and the interface is made with TraitsUI.
 It stems from my homework for the [ay201b](https://ay201b.wordpress.com/topical-modules/2013-topical-modules/) course.
 
+![interface](https://github.com/xinglunju/tdviz/blob/master/screenshot.png)
+
 ## Denpendencies
 
 * Mayavi,
