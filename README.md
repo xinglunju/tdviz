@@ -18,7 +18,7 @@ It stems from my homework for the [ay201b](https://ay201b.wordpress.com/topical-
 
 ## Versions
 
-Now it is full compatible with Python 3 (using TDViz3.py). The old file (TDViz.py) may still work with Python 2 but is not guarenteed.
+Now it is full compatible with Python 3 (using TDViz3.py). The old file (TDViz.py) may still work with Python 2 but is not guaranteed.
 
 I tested it with the following environment and everything works well:
 
@@ -42,4 +42,11 @@ The first two can be saved in a 'mesh' file and be imported to softwares such as
 ## Known issues
 
 1. Cannot load a different fits file if the current file name includes path: have to delete the current 'fitsfile' name, then nagivate to the new fits file.
-2. To be found...
+2. In Mac OS 10.15 (Catalina), you may find an incomplete manual panel and a blank scene window. It may be solved by installing PyQt5:
+```
+pip install PyQt5
+pip install PyQt5-sip
+```
+Thanks to Zhiyu Zhang for pointing this out!
+
+
